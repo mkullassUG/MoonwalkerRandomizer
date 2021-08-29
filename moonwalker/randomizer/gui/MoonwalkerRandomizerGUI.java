@@ -21,11 +21,13 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Insets;
+import java.awt.event.ItemEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
@@ -58,6 +60,7 @@ import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -95,6 +98,7 @@ public class MoonwalkerRandomizerGUI extends JFrame
 	
 	private File srcRom;
 	private File destRom;
+	private File customMusicDir;
 	
 	private JFileChooser srcRomDialog;
 	private JFileChooser destRomDialog;
@@ -111,7 +115,7 @@ public class MoonwalkerRandomizerGUI extends JFrame
 	
 	private Preferences prefs;
 
-	private final static String VERSION = "0.7.2";
+	private final static String VERSION = "0.8.1";
 	private AboutDialog aboutDialog;
 	
 	public MoonwalkerRandomizerGUI()
@@ -122,6 +126,7 @@ public class MoonwalkerRandomizerGUI extends JFrame
 		setTitle("Moonwalker Randomizer v" + VERSION);
 		
 		prefs = Preferences.userNodeForPackage(MoonwalkerRandomizerGUI.class);
+		customMusicDir = new File("Custom/Music/");
 		
 		lStatus = new JLabel(" ");
 		statusUpdater = new ScheduledThreadPoolExecutor(1);
@@ -493,9 +498,23 @@ public class MoonwalkerRandomizerGUI extends JFrame
 				BorderFactory.createEmptyBorder(), "Global settings"));
 		globalSettingsPanel.setLayout(new BoxLayout(globalSettingsPanel, BoxLayout.Y_AXIS));
 		
-		JCheckBox cRandomizePositions = new JCheckBox("Randomize positions*");
-		JCheckBox cRandomizeStageOrder = new JCheckBox("Randomize stage order (Coming soon)");
-		JCheckBox cRandomizeBosses = new JCheckBox("Randomize bosses (Coming soon)");
+		JCheckBox cRandomizePositions = new JCheckBox("Randomize object positions");
+		
+		JLabel lLevelOrder = new JLabel("Level order: ");
+		String LEVEL_ORDER_NONE = "No randomization";
+		String LEVEL_ORDER_STAGE = "Randomize stage order";
+		String LEVEL_ORDER_ROUND = "Randomize round order";
+		String LEVEL_ORDER_ALL = "Fully randomized";
+		JComboBox<String> cbLevelOrder = new JComboBox<>(new String[] {
+				LEVEL_ORDER_NONE,
+				LEVEL_ORDER_STAGE,
+				LEVEL_ORDER_ROUND,
+				LEVEL_ORDER_ALL
+		});
+		JCheckBox cKeep1_1 = new JCheckBox("Keep 1-1 as first level");
+		JCheckBox cKeep5_3 = new JCheckBox("Keep 5-3 as last level");
+		
+		//JCheckBox cRandomizeBosses = new JCheckBox("Randomize bosses (Coming soon)");
 		JCheckBox cRandomizeMusic = new JCheckBox("Randomize music");
 		
 		JRadioButton rbMusicShuffleOnly = new JRadioButton("Only shuffle standard music");
@@ -507,18 +526,31 @@ public class MoonwalkerRandomizerGUI extends JFrame
 		bgMusic.add(rbMusicInsertOnly);
 		bgMusic.add(rbMusicFull);
 		
+		JButton bOpenCustomMusicFolder = new JButton("Open custom music folder");
+		
 		cRandomizePositions.setSelected(true);
-		cRandomizeStageOrder.setSelected(false);
-		cRandomizeBosses.setSelected(false);
+		cbLevelOrder.setSelectedItem(LEVEL_ORDER_ALL);
+		//cRandomizeBosses.setSelected(false);
 		cRandomizeMusic.setSelected(false);
 		rbMusicFull.setSelected(true);
 		
-		cRandomizeStageOrder.setEnabled(false);
-		cRandomizeBosses.setEnabled(false);
+		cKeep1_1.setSelected(false);
+		cKeep5_3.setSelected(false);
+		
+		//cRandomizeBosses.setEnabled(false);
 		rbMusicShuffleOnly.setEnabled(cRandomizeMusic.isSelected());
 		rbMusicInsertOnly.setEnabled(cRandomizeMusic.isSelected());
 		rbMusicFull.setEnabled(cRandomizeMusic.isSelected());
 		
+		cbLevelOrder.addItemListener(e ->
+		{
+			if (e.getStateChange() == ItemEvent.SELECTED)
+			{
+				boolean enableCheckboxes = !LEVEL_ORDER_NONE.equals(e.getItem());
+				cKeep1_1.setEnabled(enableCheckboxes);
+				cKeep5_3.setEnabled(enableCheckboxes);
+			}
+		});
 		cRandomizeMusic.addChangeListener(e ->
 		{
 			boolean enableMusicSettings = cRandomizeMusic.isSelected();
@@ -526,11 +558,33 @@ public class MoonwalkerRandomizerGUI extends JFrame
 			rbMusicInsertOnly.setEnabled(enableMusicSettings);
 			rbMusicFull.setEnabled(enableMusicSettings);
 		});
+		bOpenCustomMusicFolder.addActionListener(e ->
+		{
+			try
+			{
+				if (!customMusicDir.exists())
+					customMusicDir.mkdirs();
+				if (customMusicDir.isDirectory())
+					Desktop.getDesktop().open(customMusicDir);
+				else
+					Desktop.getDesktop().open(customMusicDir.getParentFile());
+			}
+			catch (Exception exc)
+			{
+				exc.printStackTrace();
+			}
+		});
 		
 		randomizerSettings.put("randomizePositions", () -> cRandomizePositions.isSelected());
-		randomizerSettings.put("randomizeStageOrder", () -> cRandomizeStageOrder.isSelected());
-		randomizerSettings.put("randomizeBosses", () -> cRandomizeBosses.isSelected());
+		randomizerSettings.put("levelOrder.randomizeStageOrder", () ->
+			checkBoxHasOneOf(cbLevelOrder, LEVEL_ORDER_STAGE, LEVEL_ORDER_ALL));
+		randomizerSettings.put("levelOrder.randomizeRoundOrder", () ->
+			checkBoxHasOneOf(cbLevelOrder, LEVEL_ORDER_ROUND, LEVEL_ORDER_ALL));
+		//randomizerSettings.put("randomizeBosses", () -> cRandomizeBosses.isSelected());
 		randomizerSettings.put("randomizeMusic", () -> cRandomizeMusic.isSelected());
+		
+		randomizerSettings.put("levelOrder.keep_1-1_first", () -> cKeep1_1.isSelected());
+		randomizerSettings.put("levelOrder.keep_5-3_last", () -> cKeep5_3.isSelected());
 		
 		randomizerSettings.put("randomizeMusic.shuffleStandard",
 				() -> (rbMusicShuffleOnly.isSelected() || rbMusicFull.isSelected()));
@@ -539,19 +593,24 @@ public class MoonwalkerRandomizerGUI extends JFrame
 		
 		randomizerSettings.put("replaceTitleText", () -> Boolean.TRUE);
 		
-		JLabel explLabel = new JLabel("*When enabled, uses stage settings. "
-				+ "When disabled, ignores them.");
-		
+		globalSettingsPanel.add(createHorizontalSeparator(2, JSeparator.HORIZONTAL));
 		globalSettingsPanel.add(leftJustified(0, cRandomizePositions));
-		globalSettingsPanel.add(leftJustified(0, cRandomizeStageOrder));
-		globalSettingsPanel.add(leftJustified(0, cRandomizeBosses));
+		globalSettingsPanel.add(createHorizontalSeparator(2, JSeparator.HORIZONTAL));
+		globalSettingsPanel.add(leftJustified(0, lLevelOrder, cbLevelOrder));
+		globalSettingsPanel.add(
+				leftJustified(20, 
+					verticalLayout(0,
+						cKeep1_1, cKeep5_3)));
+		globalSettingsPanel.add(createHorizontalSeparator(2, JSeparator.HORIZONTAL));
+		//globalSettingsPanel.add(leftJustified(0, cRandomizeBosses));
+		//globalSettingsPanel.add(createHorizontalSeparator(2, JSeparator.HORIZONTAL));
 		globalSettingsPanel.add(leftJustified(0, cRandomizeMusic));
 		globalSettingsPanel.add(
 				leftJustified(20, 
 					verticalLayout(0,
 						rbMusicShuffleOnly, rbMusicInsertOnly, rbMusicFull)));
+		globalSettingsPanel.add(leftJustified(40, bOpenCustomMusicFolder));
 		globalSettingsPanel.add(Box.createVerticalGlue());
-		globalSettingsPanel.add(leftJustified(0, explLabel));
 		
 		stageSettingsPanel.setMinimumSize(new Dimension(20, 
 				stageSettingsPanel.getMinimumSize().height));
@@ -594,7 +653,8 @@ public class MoonwalkerRandomizerGUI extends JFrame
 							.collect(Collectors
 								.toMap(e -> e.getKey(),
 									e -> e.getValue().get())
-							), meta, Hashes.murmur64(seed));
+							), meta, Hashes.murmur64(seed),
+							customMusicDir);
 				
 				try (FileOutputStream fos = new FileOutputStream(destRom))
 				{
@@ -691,7 +751,30 @@ public class MoonwalkerRandomizerGUI extends JFrame
 		
 		randomizeSeed.run();
 	}
-	
+
+	@SafeVarargs
+	private <T> boolean checkBoxHasOneOf(JComboBox<T> cbLevelOrder, T... elems)
+	{
+		Object selectedElem = cbLevelOrder.getSelectedItem();
+		if (selectedElem == null)
+		{
+			for (T elem: elems)
+			{
+				if (elem == null)
+					return true;
+			}
+		}
+		else
+		{
+			for (T elem: elems)
+			{
+				if (selectedElem.equals(elem))
+					return true;
+			}
+		}
+		return false;
+	}
+
 	private static String limitString(String s, int limit)
 	{
 		if (s.length() > limit)
@@ -781,7 +864,7 @@ public class MoonwalkerRandomizerGUI extends JFrame
 			/*5-1*/
 			{"Randomize kids (ground)", "Randomize kids (hidden)",
 					"Randomize guards", "Randomize explosives",
-					"Randomize turrets"},
+					"Randomize turrets", "Randomize teleporters"},
 			
 			/*5-2*/
 			{"Randomize kids (ground)", "Randomize kids (hidden)",
@@ -832,7 +915,7 @@ public class MoonwalkerRandomizerGUI extends JFrame
 			{{"proc:randomizeCaveData"}, {"type:0xE"}, {"type:0x2F"}, {"type:0x60"}, {"type:0x4C"}, {"type:0x59"}},
 			
 			/*5-1*/
-			{{"type:0xC"}, {"type:0x5"}, {"type:0x5B"}, {"type:0x7D"}, {"type:0x25"}},
+			{{"type:0xC"}, {"type:0x5"}, {"type:0x5B"}, {"type:0x7D"}, {"type:0x25"}, {"proc:randomizeTeleporters"}},
 			
 			/*5-2*/
 			{{"type:0xC"}, {"type:0x5"}, {"type:0x5B"}, {"type:0x7D"}, {"type:0x25"}},
@@ -867,6 +950,11 @@ public class MoonwalkerRandomizerGUI extends JFrame
 							settingName = "randomizePositions." + settingName + str;
 						else if (str.startsWith("proc:"))
 							settingName = "executeProcedures." + settingName + str;
+						
+						//TODO fix spiders and remove
+						if (str.equals("type:0x4C"))
+							ch.setSelected(false);
+						
 						ret.put(settingName, () -> ch.isSelected());
 					}
 				}
@@ -1024,6 +1112,17 @@ public class MoonwalkerRandomizerGUI extends JFrame
 		ret.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 		
 		return ret;
+	}
+	
+	private static JSeparator createHorizontalSeparator(int height, int orientation)
+	{
+		JSeparator sep = new JSeparator(orientation);
+		sep.setPreferredSize(new Dimension(
+				sep.getPreferredSize().width, height));
+		sep.setMaximumSize(new Dimension(
+				sep.getMaximumSize().width, height));
+		sep.setOpaque(false);
+		return sep;
 	}
 	private static JPanel leftJustified(int leftMargin, Component... comp)
 	{

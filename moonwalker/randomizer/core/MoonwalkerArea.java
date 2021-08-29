@@ -74,7 +74,7 @@ public class MoonwalkerArea
 	}
 	public Point getRandomPoint(Random r)
 	{
-		return rpGen.getRandomPoint(areas.toArray(l -> new ShapeWrapper[l]), r);
+		return rpGen.getRandomPoint(this, r);
 	}
 	public boolean contains(Point p)
 	{
@@ -82,13 +82,18 @@ public class MoonwalkerArea
 		{
 			if (sh.isRectangle())
 			{
-				if (sh.getRectangle().contains(p))
+				if (rectContains(sh.getRectangle(), p))
 					return true;
 			}
 			else if (sh.getPoint().equals(p))
 				return true;
 		}
 		return false;
+	}
+	public boolean rectContains(Rectangle rect, Point p)
+	{
+		return new Rectangle(rect.x, rect.y, rect.width + 1, rect.height + 1)
+				.contains(p);
 	}
 	public Rectangle getBounds()
 	{
@@ -100,28 +105,46 @@ public class MoonwalkerArea
 				Rectangle rect = sh.getRectangle();
 				if (ret == null)
 					ret = new Rectangle(rect);
-				else if (rect.x < ret.x)
-					ret.x = rect.x;
-				else if (rect.y < ret.y)
-					ret.x = rect.x;
-				else if ((rect.x + rect.width) > (ret.x + ret.width))
-					ret.width = rect.x + rect.width - ret.x;
-				else if ((rect.y + rect.height) > (ret.y + ret.height))
-					ret.height = rect.y + rect.height - ret.y;
+				else
+				{
+					if (rect.x < ret.x)
+					{
+						ret.width += ret.x - rect.x;
+						ret.x = rect.x;
+					}
+					if (rect.y < ret.y)
+					{
+						ret.height += ret.y - rect.y;
+						ret.y = rect.y;
+					}
+					if ((rect.x + rect.width) > (ret.x + ret.width))
+						ret.width = rect.x + rect.width - ret.x;
+					if ((rect.y + rect.height) > (ret.y + ret.height))
+						ret.height = rect.y + rect.height - ret.y;
+				}
 			}
 			else
 			{
 				Point p = sh.getPoint();
 				if (ret == null)
 					ret = new Rectangle(p.x, p.y, 0, 0);
-				else if (p.x < ret.x)
-					ret.x = p.x;
-				else if (p.y < ret.y)
-					ret.y = p.y;
-				else if (p.x > (ret.x + ret.width))
-					ret.width = p.x - ret.x;
-				else if (p.y > (ret.y + ret.height))
-					ret.height = p.y - ret.y;
+				else
+				{
+					if (p.x < ret.x)
+					{
+						ret.width += ret.x - p.x;
+						ret.x = p.x;
+					}
+					if (p.y < ret.y)
+					{
+						ret.height += ret.y - p.y;
+						ret.y = p.y;
+					}
+					if (p.x > (ret.x + ret.width))
+						ret.width = p.x - ret.x;
+					if (p.y > (ret.y + ret.height))
+						ret.height = p.y - ret.y;
+				}
 			}
 		}
 		return ret;
@@ -160,36 +183,53 @@ public class MoonwalkerArea
 		}
 		return new MoonwalkerArea(newAreas, rpGen);
 	}
+//	public boolean intersects(Rectangle rect)
+//	{
+//		for (ShapeWrapper sh: areas)
+//		{
+//			if (sh.isRectangle())
+//			{
+//				if (sh.getRectangle().intersects(rect))
+//					return true;
+//			}
+//			else if (rect.contains(sh.getPoint()))
+//				return true;
+//		}
+//		return false;
+//	}
+	public boolean intersects(Rectangle rect)
+	{
+		Rectangle r1 = new Rectangle(rect);
+		r1.width++;
+		r1.height++;
+		for (ShapeWrapper sh: areas)
+		{
+			if (sh.isRectangle())
+			{
+				Rectangle r2 = new Rectangle(sh.getRectangle());
+				r2.width++;
+				r2.height++;
+				if (r1.intersects(r2))
+					return true;
+			}
+			else if (r1.contains(sh.getPoint()))
+				return true;
+		}
+		return false;
+	}
+	public boolean intersects(ShapeWrapper sh)
+	{
+		if (sh.isRectangle())
+			return intersects(sh.getRectangle());
+		else
+			return contains(sh.getPoint());
+	}
 	public boolean intersects(MoonwalkerArea area)
 	{
-		for (ShapeWrapper srcSh: areas)
+		for (ShapeWrapper targetSh: area.areas)
 		{
-			for (ShapeWrapper targetSh: area.areas)
-			{
-				if (srcSh.isRectangle())
-				{
-					if (targetSh.isRectangle())
-					{
-						if (srcSh.rect.intersects(targetSh.rect))
-							return true;
-					}
-					else
-					{
-						if (srcSh.rect.contains(targetSh.point))
-							return true;
-					}
-				}
-				else
-				{
-					if (targetSh.isRectangle())
-					{
-						if (targetSh.rect.contains(srcSh.point))
-							return true;
-					}
-					else
-						return srcSh.point.equals(targetSh.point);
-				}
-			}
+			if (intersects(targetSh))
+				return true;
 		}
 		return false;
 	}
@@ -238,10 +278,10 @@ public class MoonwalkerArea
 	private static class DefaultRandomPointGenerator implements RandomPointGenerator
 	{
 		@Override
-		public Point getRandomPoint(ShapeWrapper[] areas, Random r)
+		public Point getRandomPoint(MoonwalkerArea area, Random r)
 		{
 			long sum = 0;
-			for (ShapeWrapper sh:areas)
+			for (ShapeWrapper sh: area.areas)
 			{
 				if (sh.isRectangle())
 				{
@@ -253,7 +293,7 @@ public class MoonwalkerArea
 			}
 			long desired = new BigDecimal(sum).multiply(new BigDecimal(r.nextDouble())).longValue();
 			long counter = 0;
-			for (ShapeWrapper sh:areas)
+			for (ShapeWrapper sh: area.areas)
 			{
 				long incr;
 				if (sh.isRectangle())

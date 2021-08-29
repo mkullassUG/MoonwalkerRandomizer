@@ -22,5 +22,5 @@ import java.util.Random;
 
 public interface RandomPointGenerator
 {
-	public Point getRandomPoint(ShapeWrapper[] shArr, Random r);
+	public Point getRandomPoint(MoonwalkerArea area, Random r);
 }

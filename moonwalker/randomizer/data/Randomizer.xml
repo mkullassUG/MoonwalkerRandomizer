@@ -2030,6 +2030,9 @@
 					<rectangle x="224" y="296" w="126" h="0" />
 					<rectangle x="498" y="296" w="412" h="0" />
 				</spawnMap>
+				<spawnMap name="4-1-spider-ground">
+					<!--TODO implement-->
+				</spawnMap>
 				<spawnMap name="4-1-stalactite">
 					<rectangle x="20" y="160" w="1240" h="0" />
 					<rectangle x="394" y="244" w="14" h="0" />
@@ -2281,6 +2284,9 @@
 
 					<rectangle x="232" y="714" w="30" h="0" />
 				</spawnMap>
+				<spawnMap name="4-2-spider-ground">
+					<!--TODO implement-->
+				</spawnMap>
 				<spawnMap name="4-2-stalactite">
 					<rectangle x="24" y="24" w="580" h="0" />
 					
@@ -2471,6 +2477,9 @@
 					<rectangle x="920" y="490" w="16" h="0"/>
 					<rectangle x="100" y="514" w="600" h="0"/>
 				</spawnMap>
+				<spawnMap name="4-3-spider-ground">
+					<!--TODO implement-->
+				</spawnMap>
 				<spawnMap name="4-3-stalactite">
 					<rectangle x="140" y="34" w="780" h="0"/>
 					<rectangle x="426" y="156" w="60" h="0"/>
@@ -2511,9 +2520,11 @@
 					<object type="59">
 						<case>
 							<predicate>
-								<dataEqualsHex index="2" value="72" />
-								<dataEqualsHex index="2" value="32" />
-								<dataEqualsHex index="2" value="2" />
+								<or>
+									<dataEqualsHex index="2" value="72" />
+									<dataEqualsHex index="2" value="32" />
+									<dataEqualsHex index="2" value="2" />
+								</or>
 							</predicate>
 							<spawnMapRef name="4-3-closed">
 								<offset x="0" y="32" />
@@ -2696,6 +2707,9 @@
 						</spawnMapRef>
 					</object>
 				</randomizePositions>
+				<executeProcedure name="randomizeTeleporters">
+					<object type="21"/>
+				</executeProcedure>
 			</randomizationFlow>
 		</stage>
 		<stage name="5-2" index="13">
@@ -2727,9 +2741,7 @@
 					<rectangle x="10" y="401" w="420" h="3"/>
 					<rectangle x="818" y="401" w="440" h="3"/>
 				</spawnMap>
-				<spawnMap name="5-2-ground-no-priority">
-					<rectangle x="612" y="71" w="50" h="3"/>
-
+				<spawnMap name="5-2-ground-reachable-no-priority">
 					<rectangle x="102" y="87" w="94" h="3"/>
 					<rectangle x="1094" y="87" w="94" h="3"/>
 
@@ -2851,7 +2863,7 @@
 						</spawnMapRef>
 					</object>
 					<object type="C">
-						<spawnMapRef name="5-2-ground-no-priority">
+						<spawnMapRef name="5-2-ground-reachable-no-priority">
 							<offset x="0" y="-22" />
 						</spawnMapRef>
 					</object>

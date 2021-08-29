@@ -22,7 +22,6 @@ import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map.Entry;
 import java.util.function.Predicate;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Element;

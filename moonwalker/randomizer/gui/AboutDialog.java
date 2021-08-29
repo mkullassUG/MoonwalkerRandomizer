@@ -20,8 +20,10 @@ package moonwalker.randomizer.gui;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Desktop;
 import java.awt.Window;
 import java.awt.Dialog.ModalityType;
+import java.net.URI;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.util.Scanner;
@@ -115,9 +117,17 @@ public class AboutDialog
 		});
 		bGithub.addActionListener(e -> 
 		{
-			//TODO implement
+			try
+			{
+				Desktop desktop = Desktop.isDesktopSupported() ? Desktop.getDesktop() : null;
+				if (desktop != null && desktop.isSupported(Desktop.Action.BROWSE))
+					desktop.browse(new URI("https://github.com/mkullassUG/MoonwalkerRandomizer"));
+			}
+			catch (Exception exc)
+			{
+				exc.printStackTrace();
+			}
 		});
-		bGithub.setEnabled(false);
 		bClose.addActionListener(e -> dialog.dispose());
 		
 		southPanel.add(Box.createHorizontalStrut(5));
